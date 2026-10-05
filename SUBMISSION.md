@@ -3,7 +3,7 @@
 ## Team
 - **Team ID:** DBG-493
 - **Team name:** NEXORA
-- **Members:** _[names]_
+- **Members:** S Divya Dharshan, Ashvika Vinoth V K, M Hari Preeth, Sumiksha V E
 
 ## Card
 - **Track:** ♣ Cyber Security
