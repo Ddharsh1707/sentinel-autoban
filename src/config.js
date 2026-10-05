@@ -1,4 +1,10 @@
 import crypto from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Relative paths are resolved from the project folder, so the app works from any working directory.
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const fromRoot = (p) => (p === ':memory:' ? p : path.resolve(PROJECT_ROOT, p));
 
 const DEFAULTS = {
   PORT: '3000',
@@ -47,8 +53,8 @@ export function loadConfig(env = process.env) {
       .map((s) => s.trim())
       .filter(Boolean),
     tailIntervalMs: positiveInt('TAIL_INTERVAL_MS', get('TAIL_INTERVAL_MS')),
-    dbPath: get('DB_PATH'),
-    authLogPath: get('AUTH_LOG_PATH'),
+    dbPath: fromRoot(get('DB_PATH')),
+    authLogPath: fromRoot(get('AUTH_LOG_PATH')),
     adminToken: adminTokenFromEnv || crypto.randomBytes(18).toString('base64url'),
     adminTokenGenerated: !adminTokenFromEnv,
   };

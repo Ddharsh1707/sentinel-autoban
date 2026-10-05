@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentinel Dashboard</title>
+<style>
+  :root { --bg:#0b1120; --card:#111a2e; --line:#22304d; --text:#e2e8f0; --muted:#8fa0bb; --accent:#38bdf8; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:20px; }
+  header .rule { color:var(--muted); font-size:13px; }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 40px; display:grid; gap:16px; }
+  .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; min-width:0; }
+  .card h2 { margin:0 0 12px; font-size:15px; color:var(--muted); font-weight:600; }
+  .stat { font-size:32px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .stat.bad { color:var(--bad); } .stat.ok { color:var(--ok); }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .scroll { overflow-x:auto; }
+  .mono { font-family:ui-monospace, Consolas, monospace; }
+  .count { color:var(--bad); font-weight:700; font-variant-numeric:tabular-nums; }
+  button { border:1px solid var(--line); background:#17233d; color:var(--text); border-radius:8px; padding:7px 12px; cursor:pointer; font-size:14px; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#03203a; border-color:var(--accent); font-weight:700; }
+  button.danger { background:rgba(239,68,68,.15); border-color:rgba(239,68,68,.5); color:#fecaca; }
+  input { padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:#0a1222; color:var(--text); font-size:14px; min-width:0; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .empty { color:var(--muted); font-size:14px; padding:8px 0; }
+  .log { font-family:ui-monospace, Consolas, monospace; font-size:12.5px; max-height:220px; overflow:auto; background:#0a1222; border-radius:8px; padding:10px; margin-top:10px; }
+  .log div.ok { color:var(--ok); } .log div.err { color:var(--warn); } .log div.ban { color:var(--bad); }
+  #login { max-width:420px; margin:12vh auto; }
+  .hide { display:none !important; }
+  .muted { color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<section id="login" class="card">
+  <h2>Sentinel dashboard</h2>
+  <p class="muted">Enter the admin token (from <span class="mono">.env</span> or the server console).</p>
+  <form id="tokenForm" class="row">
+    <input id="token" type="password" placeholder="Admin token" style="flex:1" autocomplete="off" required>
+    <button class="primary" type="submit">Open</button>
+  </form>
+  <p id="tokenErr" class="muted" style="color:var(--bad)"></p>
+</section>
+
+<div id="app" class="hide">
+  <header>
+    <div><h1>Sentinel</h1><div class="rule" id="rule"></div></div>
+    <div class="row"><span class="muted" id="clock"></span><button id="logout">Lock</button></div>
+  </header>
+  <main>
+    <div class="grid">
+      <div class="card"><h2>Active bans</h2><div class="stat bad" id="sActive">0</div></div>
+      <div class="card"><h2>Failed logins (1h)</h2><div class="stat" id="sFail">0</div></div>
+      <div class="card"><h2>Successful logins (1h)</h2><div class="stat ok" id="sOk">0</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Active bans · live</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>IP</th><th>Reason</th><th>Offence</th><th>Lifts in</th><th>Until</th><th></th></tr></thead>
+        <tbody id="bans"></tbody>
+      </table></div>
+      <div id="bansEmpty" class="empty">No active bans.</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Top failing IPs (1h)</h2>
+        <div class="scroll"><table><thead><tr><th>IP</th><th>Failures</th></tr></thead><tbody id="top"></tbody></table></div>
+        <div id="topEmpty" class="empty">No failures yet.</div>
+      </div>
+      <div class="card">
+        <h2>Allowlist (never banned)</h2>
+        <form id="allowForm" class="row">
+          <input id="allowIp" placeholder="IP, e.g. 10.0.0.5" style="flex:1 1 140px" required>
+          <input id="allowNote" placeholder="Note" style="flex:1 1 120px" maxlength="200">
+          <button type="submit">Add</button>
+        </form>
+        <div class="scroll"><table><tbody id="allow"></tbody></table></div>
+        <div id="allowEmpty" class="empty">Empty.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Live demo</h2>
+      <p class="muted">Sends real requests to <span class="mono">POST /login</span>. Needs <span class="mono">TRUST_PROXY=true</span> so each button can use its own IP.</p>
+      <div class="row">
+        <button class="danger" id="attack">Bot: 10 wrong passwords from 203.0.113.7</button>
+        <button id="student">Student: correct login from 198.51.100.20</button>
+        <button id="tryBanned">Bot: try again</button>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  let token = '';
+  try { token = sessionStorage.getItem('sentinelToken') || ''; } catch {}
+  let bans = [];
+  let skew = 0; // server time minus browser time, so countdowns follow the server clock
+
+  async function api(method, path, body) {
+    const res = await fetch(path, {
+      method,
+      headers: { authorization: 'Bearer ' + token, ...(body ? { 'content-type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (res.status === 401) { lock('Wrong token.'); throw new Error('unauthorized'); }
+    return { status: res.status, data: await res.json().catch(() => ({})) };
+  }
+
+  function lock(err) {
+    token = '';
+    try { sessionStorage.removeItem('sentinelToken'); } catch {}
+    $('app').classList.add('hide'); $('login').classList.remove('hide');
+    $('tokenErr').textContent = err || '';
+  }
+
+  async function refresh() {
+    if (!token) return;
+    try {
+      const [s, b, a] = await Promise.all([
+        api('GET', '/api/admin/stats'), api('GET', '/api/admin/bans?active=true'), api('GET', '/api/admin/allowlist'),
+      ]);
+      skew = s.data.now - Date.now();
+      const c = s.data.config;
+      $('rule').textContent = `${c.threshold} failures in ${c.windowSeconds}s → ban ${c.banDurationSeconds}s` + (c.escalation ? ` · escalating (max ${c.maxBanSeconds}s)` : '');
+      $('sActive').textContent = s.data.activeBans;
+      $('sFail').textContent = s.data.failuresLastHour;
+      $('sOk').textContent = s.data.successesLastHour;
+      $('top').innerHTML = s.data.topIps.map((r) => `<tr><td class="mono">${esc(r.ip)}</td><td>${r.failures}</td></tr>`).join('');
+      $('topEmpty').classList.toggle('hide', s.data.topIps.length > 0);
+      bans = b.data.bans;
+      renderBans();
+      $('allow').innerHTML = a.data.allowlist.map((r) => `<tr><td class="mono">${esc(r.ip)}</td><td>${esc(r.note)}</td><td style="text-align:right"><button data-unallow="${esc(r.ip)}">Remove</button></td></tr>`).join('');
+      $('allowEmpty').classList.toggle('hide', a.data.allowlist.length > 0);
+    } catch { /* handled in api() */ }
+  }
+
+  function renderBans() {
+    const now = Date.now() + skew;
+    const live = bans.filter((b) => b.until > now);
+    $('bans').innerHTML = live.map((b) => {
+      const left = Math.ceil((b.until - now) / 1000);
+      return `<tr><td class="mono">${esc(b.ip)}</td><td>${esc(b.reason)}</td><td>#${b.offence_number}</td>
+        <td class="count">${left}s</td><td class="muted">${new Date(b.until).toLocaleTimeString()}</td>
+        <td style="text-align:right"><button class="danger" data-unban="${esc(b.ip)}">Unban</button></td></tr>`;
+    }).join('');
+    $('bansEmpty').classList.toggle('hide', live.length > 0);
+    $('clock').textContent = 'Server time ' + new Date(now).toLocaleTimeString();
+  }
+
+  document.addEventListener('click', async (e) => {
+    const unban = e.target.dataset.unban;
+    const unallow = e.target.dataset.unallow;
+    if (unban) { await api('DELETE', '/api/admin/bans/' + encodeURIComponent(unban)); refresh(); }
+    if (unallow) { await api('DELETE', '/api/admin/allowlist/' + encodeURIComponent(unallow)); refresh(); }
+  });
+
+  $('allowForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const r = await api('POST', '/api/admin/allowlist', { ip: $('allowIp').value.trim(), note: $('allowNote').value });
+    if (r.status === 201) { $('allowIp').value = ''; $('allowNote').value = ''; }
+    else alert(r.data.error === 'already_allowlisted' ? 'Already on the allowlist.' : 'Not a valid IP address.');
+    refresh();
+  });
+
+  $('tokenForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    token = $('token').value.trim();
+    const res = await fetch('/api/admin/stats', { headers: { authorization: 'Bearer ' + token } });
+    if (res.status !== 200) return lock('Wrong token.');
+    try { sessionStorage.setItem('sentinelToken', token); } catch {}
+    $('login').classList.add('hide'); $('app').classList.remove('hide'); $('tokenErr').textContent = '';
+    refresh();
+  });
+  $('logout').addEventListener('click', () => lock(''));
+
+  // ---- live demo ----
+  function log(kind, text) {
+    const div = document.createElement('div');
+    div.className = kind;
+    div.textContent = new Date().toLocaleTimeString() + '  ' + text;
+    $('log').prepend(div);
+  }
+  async function tryLogin(ip, username, password) {
+    const res = await fetch('/login', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': ip }, body: JSON.stringify({ username, password }) });
+    const data = await res.json().catch(() => ({}));
+    const kind = res.status === 200 ? 'ok' : res.status === 403 ? 'ban' : 'err';
+    const detail = res.status === 200 ? 'logged in' : res.status === 403 ? `BANNED for ${data.retryAfterSeconds}s` : `${res.status} wrong password (${data.failuresInWindow}/${data.threshold})`;
+    log(kind, `${ip.padEnd(15)} ${username}: ${detail}`);
+    return res.status;
+  }
+  $('attack').addEventListener('click', async () => {
+    for (let i = 0; i < 10; i++) {
+      await tryLogin('203.0.113.7', 'student1', 'guess' + i);
+      await tryLogin('198.51.100.20', 'student2', 'results2026');
+    }
+    refresh();
+  });
+  $('student').addEventListener('click', async () => { await tryLogin('198.51.100.20', 'student2', 'results2026'); refresh(); });
+  $('tryBanned').addEventListener('click', async () => { await tryLogin('203.0.113.7', 'student1', 'results2026'); refresh(); });
+
+  setInterval(renderBans, 250);
+  setInterval(refresh, 1000);
+  if (token) { $('login').classList.add('hide'); $('app').classList.remove('hide'); refresh(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>College Portal · Results</title>
+<style>
+  :root { --bg:#0f172a; --card:#111c33; --line:#24324f; --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding:16px; }
+  .card { width:100%; max-width:380px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:28px; }
+  h1 { margin:0 0 4px; font-size:22px; }
+  p.sub { margin:0 0 20px; color:var(--muted); font-size:14px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:12px 0 6px; }
+  input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1426; color:var(--text); font-size:15px; }
+  button { width:100%; margin-top:18px; padding:11px; border:0; border-radius:8px; background:var(--accent); color:#03203a; font-weight:700; font-size:15px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .msg { margin-top:16px; padding:10px 12px; border-radius:8px; font-size:14px; display:none; }
+  .msg.ok { display:block; background:rgba(34,197,94,.12); color:var(--ok); }
+  .msg.err { display:block; background:rgba(245,158,11,.12); color:var(--warn); }
+  .msg.ban { display:block; background:rgba(239,68,68,.14); color:var(--bad); }
+  .foot { margin-top:18px; font-size:12px; color:var(--muted); text-align:center; }
+  .foot a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>College Portal</h1>
+  <p class="sub">Result week login · protected by Sentinel</p>
+  <form id="f">
+    <label for="u">Username</label>
+    <input id="u" name="username" autocomplete="username" required maxlength="128">
+    <label for="p">Password</label>
+    <input id="p" name="password" type="password" autocomplete="current-password" required maxlength="128">
+    <button id="b" type="submit">Log in</button>
+  </form>
+  <div id="m" class="msg" role="status" aria-live="polite"></div>
+  <div class="foot">Admin? <a href="/dashboard">Open the Sentinel dashboard</a></div>
+</main>
+<script>
+  const form = document.getElementById('f');
+  const msg = document.getElementById('m');
+  const btn = document.getElementById('b');
+  let timer = null;
+
+  function show(kind, text) { msg.className = 'msg ' + kind; msg.textContent = text; }
+
+  function countdown(until) {
+    clearInterval(timer);
+    btn.disabled = true;
+    const tick = () => {
+      const left = Math.ceil((until - Date.now()) / 1000);
+      if (left <= 0) { clearInterval(timer); btn.disabled = false; show('ok', 'Ban lifted. You can try again.'); return; }
+      show('ban', 'This IP is banned for too many failed logins. Try again in ' + left + 's.');
+    };
+    tick();
+    timer = setInterval(tick, 250);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = { username: form.username.value, password: form.password.value };
+    const res = await fetch('/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 200) show('ok', 'Welcome, ' + data.user + '. Your results are ready.');
+    else if (res.status === 401) show('err', 'Wrong username or password (' + data.failuresInWindow + ' of ' + data.threshold + ' failures in the last minute).');
+    else if (res.status === 403) countdown(data.until);
+    else show('err', 'Please fill in both fields.');
+  });
+
+  // If this IP is already banned, the page itself is served as a 403 JSON, so nothing else to do here.
+</script>
+</body>
+</html>
