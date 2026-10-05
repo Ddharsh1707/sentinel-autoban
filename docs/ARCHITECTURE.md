@@ -38,6 +38,25 @@ graph LR
 | **Admin API and dashboard** | Token-protected JSON API and a single HTML page that polls it | `src/routes/admin.js`, `public/dashboard.html` |
 | **Portal pages** | Login page for the demo | `public/index.html` |
 
+## Configuration (environment variables)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PORT` | `3000` | HTTP port |
+| `THRESHOLD` | `10` | Failures inside the window that trigger a ban |
+| `WINDOW_SECONDS` | `60` | Length of the sliding window |
+| `BAN_DURATION_SECONDS` | `60` | Length of a first ban |
+| `ESCALATION` | `true` | The nth ban lasts n × `BAN_DURATION_SECONDS` |
+| `MAX_BAN_SECONDS` | `86400` | Cap on any ban's length |
+| `ADMIN_TOKEN` | random, printed at startup | Bearer token for `/api/admin/*` |
+| `TRUST_PROXY` | `false` | Use `X-Forwarded-For` for the client IP |
+| `LOG_FILES` | empty | Comma-separated paths of external logs to follow |
+| `TAIL_INTERVAL_MS` | `500` | How often external logs are checked for new lines |
+| `DB_PATH` | `data/sentinel.db` | SQLite file (`:memory:` in tests) |
+| `AUTH_LOG_PATH` | `logs/auth.log` | Where the portal writes its log |
+
+Every number must be a positive integer, or startup fails with a clear message.
+
 ## External services
 
 None. No email, no cloud, no hub download. Everything runs locally.
@@ -57,6 +76,7 @@ None. No email, no cloud, no hub download. Everything runs locally.
 
 - By default the client IP is the TCP remote address.
 - With `TRUST_PROXY=true`, the first address in `X-Forwarded-For` is used instead. This is needed behind a reverse proxy, and it is also how a tester on one laptop simulates several IPs.
+- The code default is `false`, which is safe when the server is exposed directly, because a client could otherwise fake its IP. `.env.example` sets it to `true` for local testing and the demo.
 - IPv4-mapped IPv6 addresses (`::ffff:1.2.3.4`) are normalised to `1.2.3.4`.
 
 ## Key decisions and why

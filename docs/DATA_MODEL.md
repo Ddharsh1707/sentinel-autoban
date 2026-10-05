@@ -100,6 +100,6 @@ Seeded at first start with demo users: `student1`, `student2` and `admin_demo`. 
 
 | Purpose | Query (in words) |
 |---|---|
-| Window count | Count `login_events` where `ip = X`, `result = 'FAIL'`, `at > now − WINDOW`, and `at > created_at of X's latest ban` (if any) |
+| Window count | Count `login_events` where `ip = X`, `result = 'FAIL'`, `at > now − WINDOW`, and `at >= until` of X's latest ban (if any) |
 | Active ban | The latest `bans` row where `ip = X` and `until > now` |
 | Offence number | Number of earlier `bans` rows for `X`, plus 1 |

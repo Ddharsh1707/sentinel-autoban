@@ -9,7 +9,7 @@
 | Caller | How they are identified |
 |---|---|
 | Anyone | Nothing needed |
-| Admin | Header `Authorization: Bearer <ADMIN_TOKEN>`. Compared in constant time. A wrong or missing token gets **401** `{ "error": "unauthorized" }` |
+| Admin | Header `Authorization: Bearer <ADMIN_TOKEN>`. Compared in constant time. A wrong or missing token gets **401** `{ "error": "unauthorized" }`. If `ADMIN_TOKEN` is not set, the server generates a random token at startup and prints it to the console |
 
 The **ban gate** runs before `GET /`, `POST /login` and `GET /portal`. For a banned IP it returns:
 

@@ -26,7 +26,7 @@ For the college IT cell, who find out about password-guessing bots only after st
 | **Ban** | A record `{ ip, created_at, until }`. Every time below is in milliseconds since the Unix epoch, UTC. |
 | **Active ban** | A ban where `now < until`. At `now >= until` the ban is over. Nothing has to delete it. |
 | **Ban duration** | `BAN_DURATION_SECONDS` (default **60**, so testers can watch it expire). The 1st ban of an IP lasts 1× the duration. With escalation on (improvement 1), the nth ban lasts n× the duration, capped at `MAX_BAN_SECONDS`. |
-| **Fresh start after a ban** | Failures that happened before or at a ban's `created_at` never count towards a later ban. |
+| **Fresh start after a ban** | Only failures at or after the end (`until`) of the IP's latest ban count towards a new ban. Failures from before the ban, and failures logged while the IP was banned (for example sshd lines, which Sentinel cannot block), never count. |
 | **Allowlisted IP** | An IP on the admin's allowlist. Its failures are logged but never cause a ban. |
 
 ## Core flow
