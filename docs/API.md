@@ -118,6 +118,16 @@ It also sets the header `Retry-After: 42`. The admin API, the dashboard page and
 <Mon> <day> <HH:MM:SS> <host> sshd[<pid>]: Accepted password for <user> from <ip> port <port> ssh2
 ```
 
+**3. nginx / Apache access log** (common or combined format):
+```
+<ip> - <user> [<dd/Mon/yyyy:HH:MM:SS ±zzzz>] "<METHOD> <path> HTTP/<v>" <status> <bytes> ...
+```
+A line counts only if the method is `POST` and the path (before any `?`) contains one of `login`, `signin`, `sign-in`, `logon`, `auth`, `session` or `wp-login.php` (case-insensitive).
+- Status `401` or `403` means `FAIL`.
+- Status `2xx` or `3xx` means `SUCCESS`.
+- Any other status is skipped.
+- The username is taken from the `<user>` field (`-` means empty).
+
 Any other line is skipped.
 
 ## Errors common to all routes

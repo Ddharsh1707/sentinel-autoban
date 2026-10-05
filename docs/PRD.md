@@ -53,6 +53,7 @@ External log files listed in `LOG_FILES` (for example an sshd or web server log)
 | **Must** | Login endpoint with the ban check before credentials are checked |
 | **Must** | Auth log file written for every login attempt |
 | **Must** | Log parser for our format and the standard sshd "Failed password" format |
+| **Should** | Log parser for nginx and Apache access logs (failed `POST` to a login path, status 401 or 403) |
 | **Must** | Sliding-window failure counting per IP (threshold 10, window 60s) |
 | **Must** | Ban with `until`; active only while `now < until`; checked on every request |
 | **Must** | One active ban per IP at a time (no duplicates) |
@@ -80,6 +81,7 @@ External log files listed in `LOG_FILES` (for example an sshd or web server log)
 - **AC1.2:** **Given** IP A has no failures, **when** A sends 9 failed logins within 60 seconds, **then** all 9 responses are 401 and A has no ban.
 - **AC1.3:** **Given** IP A sent 9 failures, the oldest more than 60 seconds ago, **when** A sends 1 more failure, **then** A is not banned, because fewer than 10 failures are inside the window.
 - **AC1.4:** **Given** the log file contains 10 sshd "Failed password … from A" lines within 60 seconds, **when** the detector reads them, **then** A is banned.
+- **AC1.5:** **Given** an nginx access log with 10 lines `"POST /login HTTP/1.1" 401` from A within 60 seconds, **when** the detector reads them, **then** A is banned. `GET` requests and other paths are ignored.
 
 ### Killer Test 2: a normal user logging in at the same time is not affected
 - **AC2.1:** **Given** IP A is sending failed logins and gets banned, **when** IP B logs in with correct credentials at the same time (before, during and after A's ban), **then** every one of B's logins returns 200 and B is never banned.

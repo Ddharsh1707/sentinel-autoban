@@ -75,7 +75,7 @@ None. No email, no cloud, no hub download. Everything runs locally.
 ## Client IP
 
 - By default the client IP is the TCP remote address.
-- With `TRUST_PROXY=true`, the first address in `X-Forwarded-For` is used instead. This is needed behind a reverse proxy, and it is also how a tester on one laptop simulates several IPs.
+- With `TRUST_PROXY=true`, the first valid address in `X-Forwarded-For` (or, if that header is absent, `X-Real-IP`) is used instead. This is needed behind a reverse proxy, and it is also how a tester on one laptop simulates several IPs.
 - The code default is `false`, which is safe when the server is exposed directly, because a client could otherwise fake its IP. `.env.example` sets it to `true` for local testing and the demo.
 - IPv4-mapped IPv6 addresses (`::ffff:1.2.3.4`) are normalised to `1.2.3.4`.
 
