@@ -22,7 +22,7 @@ Then open:
 npm test
 ```
 
-The test suite has 26 checks, including every Killer Test acceptance criterion, run against a real HTTP server with a controllable clock.
+The test suite has 29 checks, including every Killer Test acceptance criterion, run against a real HTTP server with a controllable clock.
 
 To watch an attack in the terminal, run `npm run demo` in a second terminal while the server is running.
 
@@ -38,7 +38,7 @@ To watch an attack in the terminal, run `npm run demo` in a second terminal whil
 
 | Killer Test | How Sentinel does it | Proved by |
 |---|---|---|
-| 1. 10 failed logins from one IP within a minute get that IP banned | Every attempt is written to `logs/auth.log` and fed through the log parser. Failures are counted per IP over a sliding 60-second window of real timestamps. The **10th** failure creates the ban (CrowdSec's leaky bucket fires on capacity + 1). | `test/killer.test.js` AC1.1–AC1.4, plus a parallel burst |
+| 1. 10 failed logins from one IP within a minute get that IP banned | Every attempt is written to `logs/auth.log` and fed through the log parser (Sentinel, sshd and nginx/Apache formats are supported). Failures are counted per IP over a sliding 60-second window of real timestamps. The **10th** failure creates the ban (CrowdSec's leaky bucket fires on capacity + 1). | `test/killer.test.js` AC1.1–AC1.5, plus a parallel burst |
 | 2. A normal user logging in at the same time is not affected | Counting is per IP and failures only. A banned IP never affects another. There is an allowlist for shared IPs. | AC2.1–AC2.3 |
 | 3. The ban is lifted exactly when it expires | A ban is active only while `now < until`. The check runs in the same process on every request, so there's no polling delay. A request at `until − 1 ms` is blocked; one at `until` is served. | AC3.1–AC3.3 |
 
@@ -55,7 +55,7 @@ With `TRUST_PROXY=true` (the default in `.env.example`), the first `X-Forwarded-
 curl -X POST localhost:3000/login -H "content-type: application/json" -H "x-forwarded-for: 203.0.113.7" -d '{"username":"student1","password":"wrong"}'
 ```
 
-Log lines can also be sent directly, in sshd or Sentinel format:
+Log lines can also be sent directly, in Sentinel, sshd or nginx/Apache format:
 
 ```bash
 curl -X POST localhost:3000/api/admin/ingest -H "authorization: Bearer <ADMIN_TOKEN>" -H "content-type: application/json" -d '{"lines":["Oct  5 18:40:01 host sshd[1]: Failed password for root from 203.0.113.9 port 22 ssh2"]}'

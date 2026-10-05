@@ -19,6 +19,8 @@ export function clientIp(req, trustProxy) {
       const first = normalizeIp(forwarded.split(',')[0]);
       if (net.isIP(first)) return first;
     }
+    const real = normalizeIp(req.headers['x-real-ip']);
+    if (net.isIP(real)) return real;
   }
   return normalizeIp(req.socket.remoteAddress || '');
 }

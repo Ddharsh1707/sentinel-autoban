@@ -23,11 +23,11 @@
 ## Killer Tests
 | # | Test | Status | Where it is proved |
 |---|---|---|---|
-| 1 | 10 failed logins from one IP within a minute get that IP banned | Passing | `test/killer.test.js` AC1.1–AC1.4 |
+| 1 | 10 failed logins from one IP within a minute get that IP banned | Passing | `test/killer.test.js` AC1.1–AC1.5 |
 | 2 | A normal user logging in at the same time is not affected | Passing | `test/killer.test.js` AC2.1–AC2.3 |
 | 3 | The ban is lifted exactly when it expires | Passing | `test/killer.test.js` AC3.1–AC3.3 |
 
-Run `npm test` to check all 26 tests.
+Run `npm test` to check all 29 tests.
 
 ## Improvements (from docs/GAPS.md)
 1. **Escalating bans for repeat offenders.** The nth ban lasts n × the base duration, capped at `MAX_BAN_SECONDS`. CrowdSec has this only as a commented-out line (`config/profiles.yaml:8`). Proved by `test/improvements.test.js` AC4.1.

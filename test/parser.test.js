@@ -25,6 +25,23 @@ test('reads sshd failed and accepted lines', () => {
   assert.equal(ok.ip, '10.0.0.2');
 });
 
+test('reads nginx/Apache access lines for failed and successful login POSTs', () => {
+  const fail = parseLine(
+    '203.0.113.7 - - [05/Oct/2026:18:40:01 +0530] "POST /login HTTP/1.1" 401 123 "-" "curl/8.5"',
+    NOW,
+  );
+  assert.deepEqual(fail, { at: Date.UTC(2026, 9, 5, 13, 10, 1), ip: '203.0.113.7', user: '', result: 'FAIL' });
+
+  const wp = parseLine('198.51.100.4 - alice [05/Oct/2026:13:00:00 +0000] "POST /wp-login.php?x=1 HTTP/1.1" 302 0', NOW);
+  assert.equal(wp.result, 'SUCCESS');
+  assert.equal(wp.user, 'alice');
+
+  // Not a login attempt: wrong method, wrong path, or an unrelated status.
+  assert.equal(parseLine('203.0.113.7 - - [05/Oct/2026:13:00:00 +0000] "GET /login HTTP/1.1" 401 0', NOW), null);
+  assert.equal(parseLine('203.0.113.7 - - [05/Oct/2026:13:00:00 +0000] "POST /upload HTTP/1.1" 401 0', NOW), null);
+  assert.equal(parseLine('203.0.113.7 - - [05/Oct/2026:13:00:00 +0000] "POST /login HTTP/1.1" 500 0', NOW), null);
+});
+
 test('ignores other lines and bad IPs', () => {
   assert.equal(parseLine('hello world', NOW), null);
   assert.equal(parseLine('2026-10-05T10:00:00Z sentinel-auth: result=FAIL ip=999.1.1.1 user=x', NOW), null);

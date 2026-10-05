@@ -67,6 +67,26 @@ describe('Killer Test 1: 10 failed logins from one IP within a minute get that I
     assert.equal(res.body.bansCreated[0].ip, ATTACKER);
   });
 
+  test('AC1.5: 10 nginx "POST /login ... 401" lines within a minute ban the IP', async () => {
+    const lines = Array.from(
+      { length: 10 },
+      (_, s) =>
+        `${ATTACKER} - - [05/Oct/2026:18:40:${String(s * 5).padStart(2, '0')} +0530] "POST /login HTTP/1.1" 401 57 "-" "python-requests/2.32"`,
+    );
+    lines.push(`${STUDENT} - - [05/Oct/2026:18:40:50 +0530] "GET /login HTTP/1.1" 200 900 "-" "Mozilla/5.0"`);
+    const res = await t.admin('POST', '/api/admin/ingest', { lines });
+    assert.equal(res.body.processed, 10);
+    assert.equal(res.body.skipped, 1);
+    assert.deepEqual(res.body.bansCreated.map((b) => b.ip), [ATTACKER]);
+  });
+
+  test('X-Real-IP is used when X-Forwarded-For is absent', async () => {
+    for (let i = 0; i < 10; i++) {
+      await t.request('POST', '/login', { body: BAD, headers: { 'x-real-ip': ATTACKER } });
+    }
+    assert.equal((await t.request('GET', `/api/check/${ATTACKER}`)).body.banned, true);
+  });
+
   test('parallel burst: 20 simultaneous failures create exactly one ban', async () => {
     await Promise.all(Array.from({ length: 20 }, () => t.login(ATTACKER, BAD)));
     const bans = await t.admin('GET', '/api/admin/bans?active=false');

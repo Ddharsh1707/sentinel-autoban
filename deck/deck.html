@@ -81,10 +81,10 @@
 
 <section class="slide">
   <div class="tag">Killer Tests</div>
-  <h2>All 3 pass: <span class="pill">26 / 26 tests green</span></h2>
+  <h2>All 3 pass: <span class="pill">29 / 29 tests green</span></h2>
   <table>
     <tr><th style="width:42%">Killer Test</th><th>How we prove it (npm test)</th></tr>
-    <tr><td><b>1.</b> 10 failed logins from one IP in a minute → banned</td><td>9 failures → no ban · <b>10th → 403</b> · failures spread over 63 s → no ban · 10 sshd log lines → ban · 20 parallel requests → exactly 1 ban</td></tr>
+    <tr><td><b>1.</b> 10 failed logins from one IP in a minute → banned</td><td>9 failures → no ban · <b>10th → 403</b> · failures spread over 63 s → no ban · 10 sshd or nginx log lines → ban · 20 parallel requests → exactly 1 ban</td></tr>
     <tr><td><b>2.</b> A normal user at the same time is not affected</td><td>Student logs in <span class="green">200</span> before, during and after the attack · 3 typos ≠ ban · allowlisted IP never banned</td></tr>
     <tr><td><b>3.</b> Ban lifted exactly when it expires</td><td>At <span class="mono">until − 1 ms</span> → <span class="red">403</span> · at <span class="mono">until</span> → <span class="green">200</span> · one failure after expiry does not re-ban</td></tr>
   </table>

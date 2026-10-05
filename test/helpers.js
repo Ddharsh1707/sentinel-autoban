@@ -22,8 +22,8 @@ export async function startTestServer(env = {}) {
   });
   const base = `http://127.0.0.1:${server.address().port}`;
 
-  async function request(method, path, { ip, body, token } = {}) {
-    const headers = {};
+  async function request(method, path, { ip, body, token, headers: extra } = {}) {
+    const headers = { ...extra };
     if (ip) headers['x-forwarded-for'] = ip;
     if (body !== undefined) headers['content-type'] = 'application/json';
     if (token) headers.authorization = `Bearer ${token}`;
