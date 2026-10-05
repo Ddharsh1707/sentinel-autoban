@@ -2,7 +2,7 @@
 
 ## Team
 - **Team ID:** DBG-493
-- **Team name:** _[team name]_
+- **Team name:** NEXORA
 - **Members:** _[names]_
 
 ## Card
