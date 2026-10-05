@@ -20,6 +20,42 @@
   - decisions and expiry (`pkg/database`)
   - Local API routes (`pkg/apiserver/controllers/controller.go`)
 
+## Run command
+Needs Node.js 22.13 or newer.
+
+```bash
+npm install
+cp .env.example .env
+npm start
+```
+
+- **Portal:** http://localhost:3000
+- **Dashboard:** http://localhost:3000/dashboard (token: `ADMIN_TOKEN` in `.env`, or printed at startup)
+- **Tests:** `npm test`
+- **Terminal demo:** `npm run demo`
+
+**Time limits are in `.env`,** so the Killer Tests can be checked in minutes:
+
+| Setting | Default |
+|---|---|
+| `WINDOW_SECONDS` | `60` |
+| `BAN_DURATION_SECONDS` | `60` |
+| `MAX_BAN_SECONDS` | `86400` |
+| `THRESHOLD` | `10` |
+
+To simulate several IPs from one laptop, keep `TRUST_PROXY=true` and send an `X-Forwarded-For` or `X-Real-IP` header.
+
+## Libraries used
+| Library | Use |
+|---|---|
+| `express` 5 | HTTP server and routing (the only npm dependency) |
+| `node:sqlite` (Node built-in) | Database for users, login events, bans and the allowlist |
+| `node:crypto` (Node built-in) | scrypt password hashing; constant-time token comparison |
+| `node:test` (Node built-in) | Automated tests |
+| `node:fs`, `node:net` (Node built-in) | Log tailing; IP validation |
+
+No CrowdSec code or packages are used.
+
 ## Killer Tests
 | # | Test | Status | Where it is proved |
 |---|---|---|---|
