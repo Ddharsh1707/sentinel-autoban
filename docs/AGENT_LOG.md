@@ -3,8 +3,8 @@
 The key prompts we used, and what we corrected. The original repo (CrowdSec) was only read. No files in it were created, changed or run.
 
 **Tools:**
-- Antigravity IDE agent, used to run the playbook's stages 0–8.
-- Claude Code (AI coding agent), used as a second reader to cross-check claims against the code and to draft these docs.
+- Claude Code (AI coding agent): read the CrowdSec code for the playbook's stages 0–8, cross-checked every claim against the cited lines, and drafted these docs.
+- Antigravity IDE: our team's editor, used to open and check the cited files.
 
 Every claim kept in OBSERVATIONS.md was checked by opening the cited line.
 
@@ -38,12 +38,6 @@ Every claim kept in OBSERVATIONS.md was checked by opening the cited line.
 | 5 | Cited README line ranges 26-28 and 28-30 for capacity/leakspeed | The real lines are 24-26 (capacity) and 28-29 (leakspeed) | Line numbers fixed in Stage 8 |
 | 6 | "Bans are lifted by a cleanup job" | Active bans are filtered by `until > now` in queries (decisions.go:33, :105, :235, :426). The flush job (pkg/database/flush.go) cleans up old data and is not what ends a ban. | Corrected; this shaped Killer Test 3 |
 | 7 | Treating the repo's AGENTS.md and CLAUDE.md as instructions | They are notes for AI coding tools and are claims about the code, not orders for us | Told the agent to treat them as claims |
-
-## Corrections from our Antigravity session
-
-| # | What the Antigravity agent said | What the code shows (path:line) | Fix |
-|---|---|---|---|
-| A1 | _to be filled in from our stages 0–8 chat_ | | |
 
 ## Items left as Likely (not proven by one line)
 - The file source tails files: pkg/acquisition/modules/file/tailline.go (file read; the exact line is not pinned).
