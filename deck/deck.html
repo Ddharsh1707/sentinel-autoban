@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sentinel deck</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; color: #e2e8f0; }
+  .slide { width: 1280px; height: 720px; padding: 64px 80px; background: #0b1120; page-break-after: always; position: relative; overflow: hidden; }
+  .slide:last-child { page-break-after: auto; }
+  .tag { color: #38bdf8; font-weight: 700; letter-spacing: .12em; font-size: 16px; text-transform: uppercase; }
+  h1 { font-size: 64px; margin: 18px 0 10px; line-height: 1.05; }
+  h2 { font-size: 42px; margin: 12px 0 28px; }
+  p, li { font-size: 24px; line-height: 1.45; color: #cbd5e1; }
+  ul { margin: 0; padding-left: 28px; } li { margin-bottom: 10px; }
+  .big { font-size: 30px; color: #e2e8f0; }
+  .foot { position: absolute; bottom: 36px; left: 80px; right: 80px; display: flex; justify-content: space-between; color: #64748b; font-size: 16px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  .card { background: #111a2e; border: 1px solid #22304d; border-radius: 14px; padding: 24px 26px; }
+  .card h3 { margin: 0 0 10px; font-size: 24px; color: #f8fafc; }
+  .card p { font-size: 20px; margin: 0; }
+  .red { color: #f87171; } .green { color: #4ade80; } .blue { color: #38bdf8; }
+  table { width: 100%; border-collapse: collapse; font-size: 22px; }
+  th, td { text-align: left; padding: 14px 12px; border-bottom: 1px solid #22304d; vertical-align: top; }
+  th { color: #94a3b8; font-size: 16px; text-transform: uppercase; letter-spacing: .06em; }
+  .flow { display: flex; align-items: center; gap: 14px; margin: 26px 0 34px; flex-wrap: nowrap; }
+  .box { background: #111a2e; border: 1px solid #2b3d61; border-radius: 12px; padding: 14px 16px; font-size: 19px; text-align: center; min-width: 150px; }
+  .box b { display: block; color: #f8fafc; font-size: 20px; }
+  .arrow { color: #38bdf8; font-size: 28px; }
+  .pill { display: inline-block; background: rgba(74,222,128,.15); color: #4ade80; border-radius: 999px; padding: 4px 14px; font-weight: 700; font-size: 18px; }
+  .mono { font-family: Consolas, ui-monospace, monospace; }
+  .tight h2 { margin-bottom: 16px; }
+  .tight table { font-size: 19px; }
+  .tight td, .tight th { padding: 9px 10px; }
+  .tight .mono { font-size: 14px !important; }
+</style>
+</head>
+<body>
+
+<section class="slide">
+  <div class="tag">HACKBACK · Cyber Security · The Sentinel ×1.2</div>
+  <h1>Sentinel<br><span class="blue">auto-ban for password-guessing bots</span></h1>
+  <p class="big" style="max-width:980px;margin-top:30px">Result week: bots hammer the college portal guessing passwords. Nobody notices until students can't log in.</p>
+  <div class="cols" style="margin-top:40px">
+    <div class="card"><h3>What Sentinel does</h3><p>Reads login logs, bans an IP after <b>10 failures in 60 s</b>, never touches real students, and lifts the ban <b>at the exact millisecond</b> it expires.</p></div>
+    <div class="card"><h3>Built from</h3><p>A clean-room rebuild of the core of <b>CrowdSec</b>, written only from our own docs. Node.js, Express 5, built-in SQLite.</p></div>
+  </div>
+  <div class="foot"><span>Team DBG-493</span><span>1 / 5</span></div>
+</section>
+
+<section class="slide tight">
+  <div class="tag">Reverse it</div>
+  <h2>What CrowdSec really does (and where it falls short)</h2>
+  <table>
+    <tr><th style="width:34%">Finding (verified file:line)</th><th>Why it matters for our card</th></tr>
+    <tr><td>Leaky bucket overflows on <b>capacity + 1</b><br><span class="mono" style="font-size:16px;color:#64748b">leakybucket/README.md:24-26, bucket.go:263</span></td><td>It is a rate limit, not "10 in a minute". A slow bot under the leak rate is <span class="red">never caught</span>.</td></tr>
+    <tr><td>Blocking is done by a separate <b>bouncer that polls</b><br><span class="mono" style="font-size:16px;color:#64748b">apiserver/controllers/controller.go:148</span></td><td>Bans start and end <span class="red">late</span>, up to one polling interval.</td></tr>
+    <tr><td>Escalating bans exist but are <b>commented out</b><br><span class="mono" style="font-size:16px;color:#64748b">config/profiles.yaml:8</span></td><td>The same bot returns every 4 h.</td></tr>
+    <tr><td>Brute-force rules are <b>not in the repo</b> (Hub download); there is <b>no web UI</b><br><span class="mono" style="font-size:16px;color:#64748b">config/detect.yaml:408</span></td><td>Hard for a college IT cell to run.</td></tr>
+  </table>
+  <div class="foot"><span>30+ claims verified in docs/OBSERVATIONS.md</span><span>2 / 5</span></div>
+</section>
+
+<section class="slide">
+  <div class="tag">Our design</div>
+  <h2>One process: detect and enforce, with no delay</h2>
+  <div class="flow">
+    <div class="box"><b>Login</b>POST /login</div><div class="arrow">→</div>
+    <div class="box"><b>Auth log</b>one line per attempt</div><div class="arrow">→</div>
+    <div class="box"><b>Parser</b>Sentinel + sshd</div><div class="arrow">→</div>
+    <div class="box"><b>Detector</b>failures per IP<br>in last 60 s</div><div class="arrow">→</div>
+    <div class="box"><b>Ban</b>{ ip, until }</div>
+  </div>
+  <div class="cols">
+    <div class="card"><h3>Exact rule</h3><p>The <b>10th</b> failure inside any 60-second window bans. The count comes from stored timestamps, so a restart never loses or invents failures.</p></div>
+    <div class="card"><h3>Exact expiry</h3><p>A ban is active only while <span class="mono">now &lt; until</span>, checked on <b>every request</b> by the ban gate. No cleanup job, no polling.</p></div>
+  </div>
+  <div class="foot"><span>docs/ARCHITECTURE.md · docs/DATA_MODEL.md</span><span>3 / 5</span></div>
+</section>
+
+<section class="slide">
+  <div class="tag">Killer Tests</div>
+  <h2>All 3 pass: <span class="pill">26 / 26 tests green</span></h2>
+  <table>
+    <tr><th style="width:42%">Killer Test</th><th>How we prove it (npm test)</th></tr>
+    <tr><td><b>1.</b> 10 failed logins from one IP in a minute → banned</td><td>9 failures → no ban · <b>10th → 403</b> · failures spread over 63 s → no ban · 10 sshd log lines → ban · 20 parallel requests → exactly 1 ban</td></tr>
+    <tr><td><b>2.</b> A normal user at the same time is not affected</td><td>Student logs in <span class="green">200</span> before, during and after the attack · 3 typos ≠ ban · allowlisted IP never banned</td></tr>
+    <tr><td><b>3.</b> Ban lifted exactly when it expires</td><td>At <span class="mono">until − 1 ms</span> → <span class="red">403</span> · at <span class="mono">until</span> → <span class="green">200</span> · one failure after expiry does not re-ban</td></tr>
+  </table>
+  <div class="foot"><span>A fake clock lets the tests check the exact millisecond</span><span>4 / 5</span></div>
+</section>
+
+<section class="slide">
+  <div class="tag">Our 2 improvements + demo</div>
+  <h2>Better than the original for a college IT cell</h2>
+  <div class="cols">
+    <div class="card"><h3>1 · Escalating bans</h3><p>The nth ban lasts n × the base duration, capped. A student who mistypes gets 60 s; a returning bot gets 2 min, 3 min, and so on. CrowdSec ships this switched off.</p></div>
+    <div class="card"><h3>2 · Live admin dashboard</h3><p>Active bans with live countdowns, one-click unban, an allowlist for shared college IPs, and the top attacking IPs. CrowdSec has no web UI in its repo.</p></div>
+  </div>
+  <p class="big" style="margin-top:36px">Live demo: a bot sends 10 wrong passwords → <span class="red">banned on the 10th</span> · a student keeps logging in → <span class="green">never blocked</span> · the countdown hits 0 → <span class="green">ban lifted</span>.</p>
+  <div class="foot"><span>github.com/Ddharsh1707/sentinel-autoban</span><span>5 / 5</span></div>
+</section>
+
+</body>
+</html>
